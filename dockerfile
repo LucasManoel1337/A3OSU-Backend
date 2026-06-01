@@ -1,6 +1,6 @@
 # --- Etapa 1: Compilação (Build) ---
-# Usa uma imagem oficial do Maven com Java 17 para construir o sistema
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Atualizado para o Java 21
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copia o arquivo de configuração de dependências
@@ -13,8 +13,8 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # --- Etapa 2: Execução (Run) ---
-# Usa uma imagem leve contendo apenas o ambiente de execução do Java 17
-FROM eclipse-temurin:17-jre-jammy
+# Atualizado para o Java 21 JRE (mais leve, apenas para rodar)
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Copia o arquivo .jar gerado na Etapa 1 para dentro desta nova imagem limpa
