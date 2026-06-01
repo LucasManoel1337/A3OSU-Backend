@@ -1,9 +1,11 @@
 package project.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import project.modal.entity.UserConfig;
 import project.modal.response.AuthResponse;
 import project.modal.entity.User;
 import project.repository.UserRepository;
@@ -28,22 +30,34 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
+    @Transactional // Abre uma transação única para salvar nas duas tabelas com segurança
     public AuthResponse registrar(CadastroRequest request) {
-        // Verifica se o usuário ou email já existem
+
+        // 1. Verifica se o usuário ou email já existem (Sua lógica original)
         if (userRepository.existsByUsername(request.username()) ||
                 userRepository.existsByEmail(request.email())) {
             throw new RuntimeException("Usuário ou e-mail já cadastrado!");
         }
 
-        // Cria a entidade e encripta a senha
+        // 2. Cria a entidade principal do Usuário
         User user = new User();
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
 
+        // 3. Cria a nova entidade de Configurações (Usando os Setters do Lombok)
+        UserConfig config = new UserConfig();
+        config.setNationality(request.nationality());
+        config.setLanguage(request.language());
+        config.setUser(user); // Amarra a chave estrangeira ao usuário acima
+
+        // 4. Vincula a configuração dentro do objeto do usuário
+        user.setUserConfig(config);
+
+        // 5. Salva o usuário no banco (O CascadeType.ALL vai salvar a tb_users_config junto!)
         userRepository.save(user);
 
-        // Opcional: Já logar o usuário logo após o cadastro e devolver o token
+        // 6. Gera o token e devolve o AuthResponse original para o controller
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, user.getUsername());
     }
