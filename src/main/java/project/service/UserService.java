@@ -1,24 +1,34 @@
 package project.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import project.modal.dto.ChangePasswordDTO;
 import project.modal.dto.UpdateProfileDTO;
 import project.modal.dto.UserProfileDTO;
 import project.modal.entity.User;
 import project.modal.entity.UserConfig;
+import project.modal.entity.UserDetalhes;
+import project.repository.UserDetalhesRepository;
 import project.repository.UserRepository;
+
+import java.io.IOException;
 
 @Service
 public class UserService {
 
+    private static final long MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    private UserDetalhesRepository userDetalhesrepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserDetalhesRepository userDetalhesrepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userDetalhesrepository = userDetalhesrepository;
     }
 
     // 1. ATUALIZAR NACIONALIDADE E IDIOMA
@@ -80,10 +90,35 @@ public class UserService {
         String language = user.getUserConfig() != null ? user.getUserConfig().getLanguage() : "";
 
         return new UserProfileDTO(
+                user.getId(),
                 user.getUsername(),
                 user.getEmail(),
                 nationality,
                 language
         );
+    }
+
+    public void updateAsset(Long userId, MultipartFile file, String type) throws IOException {
+        if (file.getSize() > MAX_SIZE) throw new RuntimeException("Arquivo excede 5MB");
+
+        UserDetalhes detalhes = userDetalhesrepository.findByUserId(userId)
+                .orElse(new UserDetalhes());
+
+        // IMPORTANTE: Se for um registro novo, precisamos associar o usuário à entidade
+        if (detalhes.getId() == null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            detalhes.setUser(user);
+        }
+
+        if ("avatar".equals(type)) detalhes.setAvatarData(file.getBytes());
+        else if ("banner".equals(type)) detalhes.setBannerData(file.getBytes());
+
+        userDetalhesrepository.save(detalhes); // Corrigido aqui
+    }
+
+    public UserDetalhes getDetalhesByUserId(Long userId) {
+        return userDetalhesrepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Detalhes não encontrados"));
     }
 }

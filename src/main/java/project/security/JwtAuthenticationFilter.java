@@ -31,54 +31,55 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 1. Extrai o cabeçalho "Authorization" da requisição HTTP que veio do Angular
+        // 1. Extração do Header
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
 
-        // 2. Se não existir cabeçalho ou não começar com "Bearer ", ignora e passa pro próximo filtro.
-        // O próprio Spring Security vai estourar o erro 403 lá na frente por falta de autenticação.
+        // Log básico de todas as requisições que passam por aqui
+        System.out.println("--- DEBUG: Filtro JWT ---");
+        System.out.println("URI: " + request.getRequestURI());
+        System.out.println("AuthHeader: " + authHeader);
+
+        // 2. Validação inicial
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("DEBUG: AuthHeader ausente ou sem 'Bearer'");
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
+        // 3. Extração e validação do token
+        final String jwt = authHeader.substring(7);
 
-        // ADICIONE ESTA CHECAGEM: Se o que sobrou for a palavra "null" ou estiver vazio, barra logo aqui.
-        if (jwt.equals("null") || jwt.isBlank() || jwt.equals("undefined")) {
+        if (jwt.equals("null") || jwt.isBlank()) {
+            System.out.println("DEBUG: Token é nulo ou vazio");
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 4. Usa o seu JwtService para ler quem é o dono do token
-        username = jwtService.extractUsername(jwt);
+        try {
+            final String username = jwtService.extractUsername(jwt);
+            System.out.println("DEBUG: Username extraído: " + username);
 
-        // 5. Se encontrou um username e o contexto de segurança atual ainda está vazio
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // 4. Verificação de Segurança
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            // Busca o usuário no banco de dados usando a interface padrão do Spring
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    System.out.println("DEBUG: Token válido! Logando usuário: " + username);
 
-            // 6. Usa o seu JwtService para verificar se o token pertence a esse cara e se não está vencido
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-
-                // 7. Cria o objeto "Crachá de Acesso" do Spring Security
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-
-                // Anexa detalhes extras da requisição (como IP do usuário)
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // 8. Salva o crachá no Contexto de Segurança. A partir desta linha, o usuário está LOGADO!
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    System.out.println("DEBUG: Token inválido para o usuário " + username);
+                }
             }
+        } catch (Exception e) {
+            System.out.println("DEBUG: Erro ao processar JWT: " + e.getMessage());
         }
 
-        // 9. Libera o fluxo para o Spring continuar processando a API (agora com o usuário logado)
+        // 5. Continua a corrente
         filterChain.doFilter(request, response);
     }
 }
