@@ -22,4 +22,7 @@ public class UserDetalhes {
     @Lob
     @Column(columnDefinition = "LONGBLOB")
     private byte[] bannerData;
+
+    @Column(name = "verificado")
+    private Boolean verificado;
 }

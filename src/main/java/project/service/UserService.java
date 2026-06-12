@@ -5,16 +5,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import project.modal.dto.ChangePasswordDTO;
-import project.modal.dto.UpdateProfileDTO;
-import project.modal.dto.UserProfileDTO;
+import project.modal.dto.*;
 import project.modal.entity.User;
 import project.modal.entity.UserConfig;
 import project.modal.entity.UserDetalhes;
+import project.projection.UsuarioBuscaProjection;
 import project.repository.UserDetalhesRepository;
 import project.repository.UserRepository;
 
 import java.io.IOException;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -85,16 +88,18 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        // Previne NullPointerException caso o relacionamento esteja vazio por algum motivo
         String nationality = user.getUserConfig() != null ? user.getUserConfig().getNationality() : "";
         String language = user.getUserConfig() != null ? user.getUserConfig().getLanguage() : "";
+
+        Optional<UserDetalhes> userDet = userDetalhesrepository.findByUserId(user.getId());
 
         return new UserProfileDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
                 nationality,
-                language
+                language,
+                userDet.get().getVerificado()
         );
     }
 
@@ -109,16 +114,75 @@ public class UserService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
             detalhes.setUser(user);
+            detalhes.setVerificado(false);
         }
 
         if ("avatar".equals(type)) detalhes.setAvatarData(file.getBytes());
         else if ("banner".equals(type)) detalhes.setBannerData(file.getBytes());
 
-        userDetalhesrepository.save(detalhes); // Corrigido aqui
+        userDetalhesrepository.save(detalhes);
     }
 
     public UserDetalhes getDetalhesByUserId(Long userId) {
         return userDetalhesrepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Detalhes não encontrados"));
+    }
+
+    public List<UsuarioBuscaDTO> buscarUsuariosPorNick(String termo) {
+        // Traz apenas as colunas solicitadas, blindando dados sensíveis
+        List<UsuarioBuscaProjection> projecoes = userRepository.buscarResumoUsuarios(termo);
+
+        return projecoes.stream()
+                .map(this::mapearParaBuscaDTO)
+                .collect(Collectors.toList());
+    }
+
+    private UsuarioBuscaDTO mapearParaBuscaDTO(UsuarioBuscaProjection proj) {
+        UsuarioBuscaDTO dto = new UsuarioBuscaDTO();
+        dto.setId(proj.getId());
+        dto.setUsername(proj.getUsername());
+
+        // Nacionalidade (com fallback de segurança)
+        dto.setNacionalidade(proj.getNacionalidade() != null ? proj.getNacionalidade() : "un");
+
+        // Verificado (com fallback de segurança)
+        dto.setIsVerified(proj.getIsVerified() != null ? proj.getIsVerified() : false);
+
+        // Converte a imagem
+        if (proj.getAvatarData() != null) {
+            String base64 = Base64.getEncoder().encodeToString(proj.getAvatarData());
+            dto.setAvatarUrl("data:image/jpeg;base64," + base64);
+        } else {
+            dto.setAvatarUrl(null);
+        }
+
+        return dto;
+    }
+
+    public PerfilPublicoDTO buscarPerfilPublico(Long id) {
+        // Agora usamos findById nativo do JPA
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        PerfilPublicoDTO dto = new PerfilPublicoDTO();
+        dto.setIdUser(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setCriadoEm(user.getCreatedAt());
+
+        // Nacionalidade
+        if (user.getConfig() != null && user.getConfig().getNationality() != null) {
+            dto.setNationality(user.getConfig().getNationality());
+        } else {
+            dto.setNationality("un");
+        }
+
+        // Verificado
+        if (user.getDetalhes() != null && user.getDetalhes().getVerificado() != null) {
+            dto.setVerificado(user.getDetalhes().getVerificado());
+        } else {
+            dto.setVerificado(false);
+        }
+
+        return dto;
     }
 }

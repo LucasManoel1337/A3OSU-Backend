@@ -20,4 +20,16 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="110620262315" author="lucasmp">
+        <addColumn tableName="tb_users_detalhes">
+            <column name="verificado" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="tb_users_detalhes" columnName="verificado"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

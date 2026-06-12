@@ -6,14 +6,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import project.modal.dto.ChangePasswordDTO;
-import project.modal.dto.UpdateProfileDTO;
-import project.modal.dto.UserProfileDTO;
+import project.modal.dto.*;
 import project.modal.entity.User;
 import project.modal.entity.UserDetalhes;
 import project.service.UserService;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -78,5 +77,26 @@ public class UserController {
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
                 .body(detalhes.getBannerData());
+    }
+
+    @GetMapping("/busca")
+    public ResponseEntity<List<UsuarioBuscaDTO>> pesquisarUsuarios(@RequestParam("termo") String termo) {
+
+        if (termo == null || termo.trim().isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<UsuarioBuscaDTO> resultados = userService.buscarUsuariosPorNick(termo);
+        return ResponseEntity.ok(resultados);
+    }
+
+    @GetMapping("/perfil/{id}")
+    public ResponseEntity<PerfilPublicoDTO> buscarPerfilPublico(@PathVariable Long id) {
+        try {
+            PerfilPublicoDTO perfil = userService.buscarPerfilPublico(id);
+            return ResponseEntity.ok(perfil);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
