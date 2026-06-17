@@ -13,4 +13,8 @@ public class TorneioListaDTO {
     private Boolean isPrivado;
     private String banner;
     private String logo;
+    private Long organizadorId;
+    private String organizadorUsuario;
+    private Boolean organizadorVerificado;
+    private String organizadorAvatar;
 }

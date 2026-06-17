@@ -3,16 +3,13 @@ package project.service;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import project.modal.dto.TorneioDTO;
 import project.modal.dto.TorneioDetalhesDTO;
 import project.modal.dto.TorneioListaDTO;
 import project.modal.entity.Torneio;
-import project.modal.entity.User;
 import project.modal.entity.UserDetalhes;
 import project.repository.TorneiosRepository;
 import project.repository.UserDetalhesRepository;
-import project.repository.UserRepository;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -153,6 +150,15 @@ public class TorneiosService {
 
         if (torneio.getLogo() != null) {
             dto.setLogo(Base64.getEncoder().encodeToString(torneio.getLogo()));
+        }
+
+        UserDetalhes userDetalhes = userService.getDetalhesByUserId(torneio.getCriadorId());
+
+        dto.setOrganizadorId(torneio.getCriadorId());
+        dto.setOrganizadorUsuario(userDetalhes.getUsername());
+        dto.setOrganizadorVerificado(userDetalhes.getVerificado());
+        if (userDetalhes.getAvatarData() != null) {
+            dto.setOrganizadorAvatar(Base64.getEncoder().encodeToString(userDetalhes.getAvatarData()));
         }
 
         return dto;
