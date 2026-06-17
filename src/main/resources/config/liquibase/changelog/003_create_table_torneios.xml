@@ -63,4 +63,16 @@
         </rollback>
     </changeSet>
 
+    <changeSet id="140620261905" author="lucasmp">
+        <addColumn tableName="tb_torneios">
+            <column name="vagas_restantes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="tb_torneios" columnName="vagas_restantes"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

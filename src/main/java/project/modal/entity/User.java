@@ -38,9 +38,6 @@ public class User implements UserDetails {
         this.createdAt = LocalDateTime.now();
     }
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private UserConfig userConfig;
-
     // --- MÉTODOS DO SPRING SECURITY (USERDETAILS) ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -49,8 +46,5 @@ public class User implements UserDetails {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserDetalhes detalhes;
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private UserConfig config;
 
 }

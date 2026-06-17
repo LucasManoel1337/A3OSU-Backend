@@ -19,15 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
-    @Query("SELECT u.id AS id, " +
-            "u.username AS username, " +
-            "d.avatarData AS avatarData, " +
-            "c.nationality AS nacionalidade, " +
-            "d.verificado AS isVerified " +
-            "FROM User u " +
-            "LEFT JOIN u.detalhes d " +
-            "LEFT JOIN u.config c " +
-            "WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :termo, '%'))")
+    @Query("SELECT u.id AS id, u.username AS username, d.avatarData AS avatarData, d.nationality AS nacionalidade, d.verificado AS isVerified FROM User u LEFT JOIN u.detalhes d WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :termo, '%'))")
     List<UsuarioBuscaProjection> buscarResumoUsuarios(@Param("termo") String termo);
 
 }

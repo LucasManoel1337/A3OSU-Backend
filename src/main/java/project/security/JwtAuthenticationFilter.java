@@ -35,9 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         // Log básico de todas as requisições que passam por aqui
-        System.out.println("--- DEBUG: Filtro JWT ---");
-        System.out.println("URI: " + request.getRequestURI());
-        System.out.println("AuthHeader: " + authHeader);
+        //System.out.println("--- DEBUG: Filtro JWT ---");
+        //System.out.println("URI: " + request.getRequestURI());
+        //System.out.println("AuthHeader: " + authHeader);
 
         // 2. Validação inicial
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

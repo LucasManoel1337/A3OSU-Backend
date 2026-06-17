@@ -25,4 +25,8 @@ public class UserDetalhes {
 
     @Column(name = "verificado")
     private Boolean verificado;
+
+    private String nationality;
+    private String language;
+    private String username;
 }

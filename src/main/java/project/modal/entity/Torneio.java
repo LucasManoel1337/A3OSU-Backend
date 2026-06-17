@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "tb_torneios") // Ajustado para tb_torneios
+@Table(name = "tb_torneios")
 public class Torneio {
 
     @Id
@@ -25,6 +25,9 @@ public class Torneio {
     @Column(nullable = false)
     private Integer vagas;
 
+    @Column(nullable = false)
+    private Integer vagasRestantes;
+
     @Column(nullable = false, length = 1000)
     private String descricao;
 
@@ -33,7 +36,6 @@ public class Torneio {
 
     private String senha;
 
-    // Mudança: Agora é byte[] com @Lob
     @Lob
     @Column(columnDefinition = "LONGBLOB")
     private byte[] banner;

@@ -5,9 +5,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import project.modal.entity.UserConfig;
 import project.modal.response.AuthResponse;
 import project.modal.entity.User;
+import project.modal.entity.UserDetalhes;
 import project.repository.UserRepository;
 import project.modal.request.CadastroRequest;
 import project.modal.request.LoginRequest;
@@ -33,7 +33,7 @@ public class AuthService {
     @Transactional // Abre uma transação única para salvar nas duas tabelas com segurança
     public AuthResponse registrar(CadastroRequest request) {
 
-        // 1. Verifica se o usuário ou email já existem (Sua lógica original)
+        // 1. Verifica se o usuário ou email já existem
         if (userRepository.existsByUsername(request.username()) ||
                 userRepository.existsByEmail(request.email())) {
             throw new RuntimeException("Usuário ou e-mail já cadastrado!");
@@ -45,16 +45,18 @@ public class AuthService {
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
 
-        // 3. Cria a nova entidade de Configurações (Usando os Setters do Lombok)
-        UserConfig config = new UserConfig();
-        config.setNationality(request.nationality());
-        config.setLanguage(request.language());
-        config.setUser(user); // Amarra a chave estrangeira ao usuário acima
+        // 3. Cria a nova entidade de Detalhes (Substituindo o antigo UserConfig)
+        UserDetalhes detalhes = new UserDetalhes();
+        detalhes.setNationality(request.nationality());
+        detalhes.setLanguage(request.language());
+        detalhes.setUsername(request.username());
+        detalhes.setVerificado(false); // Garante o padrão não verificado no ato do cadastro
+        detalhes.setUser(user); // Amarra a chave estrangeira ao usuário acima
 
-        // 4. Vincula a configuração dentro do objeto do usuário
-        user.setUserConfig(config);
+        // 4. Vincula os detalhes dentro do objeto do usuário
+        user.setDetalhes(detalhes);
 
-        // 5. Salva o usuário no banco (O CascadeType.ALL vai salvar a tb_users_config junto!)
+        // 5. Salva o usuário no banco (O CascadeType.ALL na entidade User vai salvar a tb_users_detalhe junto!)
         userRepository.save(user);
 
         // 6. Gera o token e devolve o AuthResponse original para o controller

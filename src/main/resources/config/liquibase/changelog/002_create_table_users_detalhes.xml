@@ -32,4 +32,20 @@
         </rollback>
     </changeSet>
 
+    <changeSet id="160620262305" author="lucasmp">
+        <addColumn tableName="tb_users_detalhes">
+            <column name="nationality" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="language" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
