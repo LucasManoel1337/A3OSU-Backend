@@ -61,6 +61,16 @@ public class TorneiosService {
         torneio.setDataInicio(requestDTO.getDataInicio());
         torneio.setHoraInicio(requestDTO.getHoraInicio());
 
+        if (requestDTO.getModeradoresIds() != null && !requestDTO.getModeradoresIds().isEmpty()) {
+            torneio.setModeradoresIds(requestDTO.getModeradoresIds());
+        }
+
+        if ("true".equalsIgnoreCase(requestDTO.getRascunho())) {
+            torneio.setStatus("Em Rascunho");
+        } else {
+            torneio.setStatus("Aguardando Início");
+        }
+
         Torneio torneioSalvo = torneioRepository.save(torneio);
         return mapearParaDTO(torneioSalvo);
     }

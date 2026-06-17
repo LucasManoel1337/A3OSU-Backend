@@ -89,4 +89,12 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="170620260536" author="lucasmp">
+        <addColumn tableName="tb_torneios">
+            <column name="moderadores_ids" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

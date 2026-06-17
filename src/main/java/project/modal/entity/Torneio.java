@@ -2,10 +2,13 @@ package project.modal.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import project.utils.LongListConverter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -60,6 +63,12 @@ public class Torneio {
 
     @Column(name = "hora_inicio")
     private LocalTime horaInicio;
+
+    private String status;
+
+    @Convert(converter = LongListConverter.class)
+    @Column(name = "moderadores_ids")
+    private List<Long> moderadoresIds = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

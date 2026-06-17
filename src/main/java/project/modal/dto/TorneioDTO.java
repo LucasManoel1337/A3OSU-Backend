@@ -5,6 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 public class TorneioDTO {
@@ -22,4 +23,6 @@ public class TorneioDTO {
     private String senha;
     private LocalDate dataInicio;
     private LocalTime horaInicio;
+    private List<Long> moderadoresIds;
+    private String rascunho;
 }
