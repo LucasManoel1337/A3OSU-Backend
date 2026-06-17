@@ -1,5 +1,6 @@
 package project.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +16,7 @@ import project.repository.UserDetalhesRepository;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -220,6 +222,14 @@ public class TorneiosService {
 
         torneio.setVagasRestantes(torneio.getVagasRestantes() - 1);
         torneioRepository.save(torneio);
+
+        UserDetalhes detalhes = userDetalhesRepository.findByUserId(request.getJogadorId())
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+
+        if (!detalhes.getConquistas().contains("PRIMEIRA_BATALHA")) {
+            detalhes.getConquistas().add("PRIMEIRA_BATALHA");
+            userDetalhesRepository.save(detalhes);
+        }
     }
 
     public List<InscritoDTO> buscarInscritosDoTorneio(Long torneioId) {
