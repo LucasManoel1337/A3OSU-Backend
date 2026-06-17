@@ -12,10 +12,13 @@ import project.repository.UserDetalhesRepository;
 import project.repository.UserRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static java.time.LocalDateTime.*;
 
 @Service
 public class UserService {
@@ -83,6 +86,7 @@ public class UserService {
         String nationality = userDet.map(UserDetalhes::getNationality).orElse("");
         String language = userDet.map(UserDetalhes::getLanguage).orElse("");
         Boolean verificado = userDet.map(UserDetalhes::getVerificado).orElse(false);
+        LocalDateTime dataCriacao = userDet.map(UserDetalhes::getCriadoEm).orElse(null);
 
         List<String> conquistas = userDet.map(UserDetalhes::getConquistas).orElse(List.of());
 
@@ -93,7 +97,8 @@ public class UserService {
                 nationality,
                 language,
                 verificado,
-                conquistas
+                conquistas,
+                dataCriacao
         );
     }
 
@@ -159,9 +164,11 @@ public class UserService {
         if (user.getDetalhes() != null) {
             dto.setNationality(user.getDetalhes().getNationality() != null ? user.getDetalhes().getNationality() : "un");
             dto.setVerificado(user.getDetalhes().getVerificado() != null ? user.getDetalhes().getVerificado() : false);
+            dto.setConquistas(user.getDetalhes().getConquistas() != null ? user.getDetalhes().getConquistas() : List.of());
         } else {
             dto.setNationality("un");
             dto.setVerificado(false);
+            dto.setConquistas(List.of());
         }
 
         return dto;

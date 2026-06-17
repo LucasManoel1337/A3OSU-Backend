@@ -1,5 +1,6 @@
 package project.modal.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record UserProfileDTO(
@@ -9,5 +10,6 @@ public record UserProfileDTO(
         String nationality,
         String language,
         Boolean verificado,
-        List<String> conquistas
+        List<String> conquistas,
+        LocalDateTime criadoEm
 ) {}

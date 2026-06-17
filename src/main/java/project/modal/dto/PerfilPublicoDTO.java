@@ -2,6 +2,7 @@ package project.modal.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class PerfilPublicoDTO {
@@ -9,5 +10,6 @@ public class PerfilPublicoDTO {
     private String username;
     private String nationality;
     private Boolean verificado;
-    private LocalDateTime criadoEm; // Para mostrarmos a data real de entrada!
+    private LocalDateTime criadoEm;
+    private List<String> conquistas;
 }

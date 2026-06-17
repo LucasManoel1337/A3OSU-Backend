@@ -3,6 +3,7 @@ package project.modal.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,4 +38,7 @@ public class UserDetalhes {
     @CollectionTable(name = "tb_users_conquistas", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "conquista_codigo")
     private List<String> conquistas = new ArrayList<>();
+
+    @Column(name = "created_at")
+    private LocalDateTime CriadoEm;
 }
