@@ -13,8 +13,8 @@ public class TorneioDTO {
     private Integer vagasRestantes;
     private String descricao;
     private Boolean isPrivado;
-    private String banner;
-    private String logo;
+    private MultipartFile banner;
+    private MultipartFile logo;
     private Long criadorId;
     private String senha;
 }
