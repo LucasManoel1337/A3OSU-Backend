@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import project.modal.dto.TorneioDTO;
 import project.modal.dto.TorneioDetalhesDTO;
+import project.modal.dto.TorneioListaDTO;
 import project.modal.entity.Torneio;
 import project.modal.entity.User;
 import project.modal.entity.UserDetalhes;
@@ -70,9 +71,9 @@ public class TorneiosService {
         return dto;
     }
 
-    public List<TorneioDTO> listarTodos() {
+    public List<TorneioListaDTO> listarTodos() {
         return torneioRepository.findAll().stream()
-                .map(this::mapearParaDTO)
+                .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
 
@@ -134,5 +135,26 @@ public class TorneiosService {
         dto.setOrganizador("Sistema");
         dto.setOrganizadorNacionalidade("un");
         dto.setOrganizadorVerificado("false");
+    }
+
+    private TorneioListaDTO mapearParaListaDTO(Torneio torneio) {
+        TorneioListaDTO dto = new TorneioListaDTO();
+        dto.setId(torneio.getId());
+        dto.setNome(torneio.getNome());
+        dto.setTipo(torneio.getTipo());
+        dto.setModo(torneio.getModo());
+        dto.setVagas(torneio.getVagas());
+        dto.setVagasRestantes(torneio.getVagasRestantes());
+        dto.setIsPrivado(torneio.getIsPrivado());
+
+        if (torneio.getBanner() != null) {
+            dto.setBanner(Base64.getEncoder().encodeToString(torneio.getBanner()));
+        }
+
+        if (torneio.getLogo() != null) {
+            dto.setLogo(Base64.getEncoder().encodeToString(torneio.getLogo()));
+        }
+
+        return dto;
     }
 }

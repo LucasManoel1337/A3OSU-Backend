@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.modal.dto.TorneioDTO;
 import project.modal.dto.TorneioDetalhesDTO;
+import project.modal.dto.TorneioListaDTO;
 import project.service.TorneiosService;
 
 import java.io.IOException;
@@ -27,7 +28,7 @@ public class TorneiosController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TorneioDTO>> listarTodos() {
+    public ResponseEntity<List<TorneioListaDTO>> listarTodos() {
         return ResponseEntity.ok(torneiosService.listarTodos());
     }
 
