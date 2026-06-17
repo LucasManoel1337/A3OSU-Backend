@@ -4,9 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import project.modal.dto.TorneioDTO;
-import project.modal.dto.TorneioDetalhesDTO;
-import project.modal.dto.TorneioListaDTO;
+import project.modal.dto.*;
 import project.service.TorneiosService;
 
 import java.io.IOException;
@@ -36,5 +34,21 @@ public class TorneiosController {
     public ResponseEntity<TorneioDetalhesDTO> buscarTorneioPorId(@PathVariable Long id) {
         TorneioDetalhesDTO detalhes = torneiosService.buscarDetalhes(id);
         return ResponseEntity.ok(detalhes);
+    }
+
+    @PostMapping("/{id}/entrar")
+    public ResponseEntity<String> entrarNoTorneio(@PathVariable Long id, @RequestBody EntrarTorneioDTO requestDTO) {
+        try {
+            torneiosService.entrarNoTorneio(id, requestDTO);
+            return ResponseEntity.ok("Inscrição realizada com sucesso!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/inscritos")
+    public ResponseEntity<List<InscritoDTO>> listarInscritos(@PathVariable Long id) {
+        List<InscritoDTO> inscritos = torneiosService.buscarInscritosDoTorneio(id);
+        return ResponseEntity.ok(inscritos);
     }
 }

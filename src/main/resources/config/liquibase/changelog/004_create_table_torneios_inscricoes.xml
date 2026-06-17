@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="170620260621" author="lucasmp">
+        <createTable tableName="tb_inscricao_torneio">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="torneio_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_inscricao_torneio" references="tb_torneios(id)"/>
+            </column>
+
+            <column name="jogador_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="pontuacao" type="INT" defaultValueNumeric="0">
+            </column>
+
+            <column name="data_inscricao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="tb_inscricao_torneio"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

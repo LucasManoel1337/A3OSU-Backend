@@ -1,13 +1,14 @@
 package project.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import project.modal.dto.TorneioDTO;
-import project.modal.dto.TorneioDetalhesDTO;
-import project.modal.dto.TorneioListaDTO;
+import project.modal.dto.*;
 import project.modal.entity.Torneio;
+import project.modal.entity.TorneioInscricao;
 import project.modal.entity.UserDetalhes;
+import project.repository.InscricaoTorneioRepository;
 import project.repository.TorneiosRepository;
 import project.repository.UserDetalhesRepository;
 
@@ -23,13 +24,15 @@ public class TorneiosService {
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
     private final UserDetalhesRepository userDetalhesRepository;
+    private final InscricaoTorneioRepository inscricaoRepository;
 
     public TorneiosService(UserService userService, TorneiosRepository torneioRepository, PasswordEncoder passwordEncoder,
-                           UserDetalhesRepository userDetalhesRepository) {
+                           UserDetalhesRepository userDetalhesRepository, InscricaoTorneioRepository inscricaoRepository) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.torneioRepository = torneioRepository;
         this.userDetalhesRepository = userDetalhesRepository;
+        this.inscricaoRepository = inscricaoRepository;
     }
 
 
@@ -180,5 +183,62 @@ public class TorneiosService {
         dto.setHoraInicio(torneio.getHoraInicio());
 
         return dto;
+    }
+
+    @Transactional
+    public void entrarNoTorneio(Long torneioId, EntrarTorneioDTO request) {
+
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+
+        if ("Em Rascunho".equalsIgnoreCase(torneio.getStatus())) {
+            throw new RuntimeException("Este torneio ainda não está aberto para inscrições.");
+        }
+
+        if (torneio.getVagasRestantes() <= 0) {
+            throw new RuntimeException("O torneio já está lotado.");
+        }
+
+        if (inscricaoRepository.existsByTorneioIdAndJogadorId(torneioId, request.getJogadorId())) {
+            throw new RuntimeException("Você já está participando deste torneio.");
+        }
+
+        if (Boolean.TRUE.equals(torneio.getIsPrivado())) {
+            if (request.getSenha() == null || !passwordEncoder.matches(request.getSenha(), torneio.getSenha())) {
+                throw new RuntimeException("Senha incorreta para este torneio privado.");
+            }
+        }
+
+        TorneioInscricao inscricao = new TorneioInscricao();
+        inscricao.setTorneioId(torneio.getId());
+        inscricao.setJogadorId(request.getJogadorId());
+        inscricaoRepository.save(inscricao);
+
+        torneio.setVagasRestantes(torneio.getVagasRestantes() - 1);
+        torneioRepository.save(torneio);
+    }
+
+    public List<InscritoDTO> buscarInscritosDoTorneio(Long torneioId) {
+        List<TorneioInscricao> inscricoes = inscricaoRepository.findByTorneioIdOrderByPontuacaoDescDataInscricaoAsc(torneioId);
+
+        return inscricoes.stream().map(inscricao -> {
+
+            var detalhes = userDetalhesRepository.findByUserId(inscricao.getJogadorId())
+                    .orElseThrow(() -> new RuntimeException("Detalhes do usuário não encontrados para ID: " + inscricao.getJogadorId()));
+
+            String avatarBase64 = null;
+            if (detalhes.getAvatarData() != null && detalhes.getAvatarData().length > 0) {
+                avatarBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(detalhes.getAvatarData());
+            }
+
+            return new InscritoDTO(
+                    inscricao.getJogadorId(),
+                    detalhes.getUsername(),
+                    detalhes.getNationality(),
+                    inscricao.getPontuacao(),
+                    avatarBase64,
+                    detalhes.getVerificado()
+            );
+        }).toList();
     }
 }
