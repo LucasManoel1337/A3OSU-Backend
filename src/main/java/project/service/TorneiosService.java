@@ -77,6 +77,14 @@ public class TorneiosService {
         }
 
         Torneio torneioSalvo = torneioRepository.save(torneio);
+
+        UserDetalhes detalhes = userDetalhesRepository.findByUserId(requestDTO.getCriadorId())
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+
+        if (!detalhes.getConquistas().contains("ORGANIZADOR")) {
+            detalhes.getConquistas().add("ORGANIZADOR");
+            userDetalhesRepository.save(detalhes);
+        }
         return mapearParaDTO(torneioSalvo);
     }
 
