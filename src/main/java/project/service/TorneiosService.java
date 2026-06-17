@@ -86,7 +86,7 @@ public class TorneiosService {
 
     public List<TorneioListaDTO> listarTodosAtivos() {
         return torneioRepository.findAll().stream()
-                .filter(torneio -> "Aguardando Início".equals(torneio.getStatus()))
+                .filter(t -> "Aguardando Início".equals(t.getStatus()) || "Em Andamento".equals(t.getStatus()))
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
