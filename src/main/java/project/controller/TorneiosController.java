@@ -1,4 +1,5 @@
 package project.controller;
+import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,8 +27,8 @@ public class TorneiosController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TorneioListaDTO>> listarTodos() {
-        return ResponseEntity.ok(torneiosService.listarTodos());
+    public ResponseEntity<List<TorneioListaDTO>> listarTodosAtivos() {
+        return ResponseEntity.ok(torneiosService.listarTodosAtivos());
     }
 
     @GetMapping("/{id}")
@@ -50,5 +51,22 @@ public class TorneiosController {
     public ResponseEntity<List<InscritoDTO>> listarInscritos(@PathVariable Long id) {
         List<InscritoDTO> inscritos = torneiosService.buscarInscritosDoTorneio(id);
         return ResponseEntity.ok(inscritos);
+    }
+
+    @GetMapping("/participando/{idUsuario}")
+    public ResponseEntity<List<TorneioListaDTO>> listarParticipativos(@PathVariable Long idUsuario) {
+        return ResponseEntity.ok(torneiosService.listarParticipativos(idUsuario));
+    }
+
+    @GetMapping("/criados/{idUsuario}")
+    public ResponseEntity<List<TorneioListaDTO>> listarCriados(@PathVariable Long idUsuario) {
+        List<TorneioListaDTO> torneios = torneiosService.listarCriados(idUsuario);
+        return ResponseEntity.ok(torneios);
+    }
+
+    @GetMapping("/moderando/{idUsuario}")
+    public ResponseEntity<List<TorneioListaDTO>> listarModerando(@PathVariable Long idUsuario) {
+        List<TorneioListaDTO> torneios = torneiosService.listarModerando(idUsuario);
+        return ResponseEntity.ok(torneios);
     }
 }

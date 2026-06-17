@@ -22,4 +22,5 @@ public class TorneioListaDTO {
     private String organizadorAvatar;
     private LocalDate dataInicio;
     private LocalTime horaInicio;
+    private String status;
 }

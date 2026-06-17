@@ -84,8 +84,9 @@ public class TorneiosService {
         return dto;
     }
 
-    public List<TorneioListaDTO> listarTodos() {
+    public List<TorneioListaDTO> listarTodosAtivos() {
         return torneioRepository.findAll().stream()
+                .filter(torneio -> "Aguardando Início".equals(torneio.getStatus()))
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
@@ -181,6 +182,7 @@ public class TorneiosService {
 
         dto.setDataInicio(torneio.getDataInicio());
         dto.setHoraInicio(torneio.getHoraInicio());
+        dto.setStatus(torneio.getStatus());
 
         return dto;
     }
@@ -240,5 +242,23 @@ public class TorneiosService {
                     detalhes.getVerificado()
             );
         }).toList();
+    }
+
+    public List<TorneioListaDTO> listarParticipativos(Long jogadorId) {
+        return torneioRepository.findTorneiosByJogadorId(jogadorId).stream()
+                .map(this::mapearParaListaDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<TorneioListaDTO> listarCriados(Long criadorId) {
+        return torneioRepository.findByCriadorId(criadorId).stream()
+                .map(this::mapearParaListaDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<TorneioListaDTO> listarModerando(Long moderadorId) {
+        return torneioRepository.buscarTorneiosPorModeradorId(moderadorId).stream()
+                .map(this::mapearParaListaDTO)
+                .collect(Collectors.toList());
     }
 }
