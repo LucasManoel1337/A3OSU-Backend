@@ -143,6 +143,8 @@ public class TorneiosService {
             definirOrganizadorPadrao(dto);
         }
 
+        dto.setStatus(torneio.getStatus());
+
         return dto;
     }
 
@@ -260,5 +262,77 @@ public class TorneiosService {
         return torneioRepository.buscarTorneiosPorModeradorId(moderadorId).stream()
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void adicionarModerador(Long torneioId, Long moderadorId) {
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+
+        if (!torneio.getModeradoresIds().contains(moderadorId)) {
+            torneio.getModeradoresIds().add(moderadorId);
+            torneioRepository.save(torneio);
+        }
+    }
+
+    @Transactional
+    public void removerModerador(Long torneioId, Long moderadorId) {
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+
+        torneio.getModeradoresIds().remove(moderadorId);
+        torneioRepository.save(torneio);
+    }
+
+    public List<InscritoDTO> buscarModeradores(Long torneioId) {
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+
+        List<Long> modIds = torneio.getModeradoresIds();
+        if (modIds == null || modIds.isEmpty()) {
+            return List.of();
+        }
+
+        return modIds.stream().map(id -> {
+            var detalhesOpt = userDetalhesRepository.findByUserId(id);
+            if (detalhesOpt.isPresent()) {
+                var det = detalhesOpt.get();
+                String avatarBase64 = null;
+                if (det.getAvatarData() != null && det.getAvatarData().length > 0) {
+                    avatarBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(det.getAvatarData());
+                }
+                return new InscritoDTO(
+                        id, det.getUsername(), det.getNationality(),
+                        (int) 0.0, avatarBase64, det.getVerificado()
+                );
+            }
+            return null;
+        }).filter(java.util.Objects::nonNull).toList();
+    }
+
+    public void atualizarStatus(Long torneioId, String novoStatus, String usuarioLogadoId) {
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado"));
+
+        UserDetalhes user = userDetalhesRepository.findByUsername(usuarioLogadoId);
+
+        // Segurança: Validação 403 (Só o criador pode mudar o status)
+        if (!torneio.getCriadorId().equals(user.getId())) {
+            throw new RuntimeException("Você não tem permissão para alterar este torneio.");
+        }
+
+        torneio.setStatus(novoStatus);
+        torneioRepository.save(torneio);
+    }
+
+    public void atualizarPontuacao(Long torneioId, Long jogadorId, Integer pontuacao, String usuarioLogadoId) {
+        Torneio torneio = torneioRepository.findById(torneioId)
+                .orElseThrow(() -> new RuntimeException("Torneio não encontrado"));
+
+        TorneioInscricao inscrito = inscricaoRepository.findByTorneioIdAndJogadorId(torneioId, jogadorId)
+                .orElseThrow(() -> new RuntimeException("Jogador não encontrado neste torneio"));
+
+        inscrito.setPontuacao(pontuacao);
+        inscricaoRepository.save(inscrito);
     }
 }

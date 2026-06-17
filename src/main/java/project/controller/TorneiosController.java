@@ -9,6 +9,7 @@ import project.modal.dto.*;
 import project.service.TorneiosService;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -68,5 +69,51 @@ public class TorneiosController {
     public ResponseEntity<List<TorneioListaDTO>> listarModerando(@PathVariable Long idUsuario) {
         List<TorneioListaDTO> torneios = torneiosService.listarModerando(idUsuario);
         return ResponseEntity.ok(torneios);
+    }
+
+    @GetMapping("/{id}/moderadores")
+    public ResponseEntity<List<InscritoDTO>> listarModeradores(@PathVariable Long id) {
+        return ResponseEntity.ok(torneiosService.buscarModeradores(id));
+    }
+
+    @PostMapping("/{id}/moderadores/{idModerador}")
+    public ResponseEntity<String> adicionarModerador(@PathVariable Long id, @PathVariable Long idModerador) {
+        torneiosService.adicionarModerador(id, idModerador);
+        return ResponseEntity.ok("Moderador adicionado com sucesso!");
+    }
+
+    @DeleteMapping("/{id}/moderadores/{idModerador}")
+    public ResponseEntity<String> removerModerador(@PathVariable Long id, @PathVariable Long idModerador) {
+        torneiosService.removerModerador(id, idModerador);
+        return ResponseEntity.ok("Moderador removido com sucesso!");
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<String> updateStatus(
+            @PathVariable Long id,
+            @RequestBody StatusUpdateDTO dto,
+            Principal principal) {
+
+        try {
+            torneiosService.atualizarStatus(id, dto.status(), principal.getName());
+            return ResponseEntity.ok("Status atualizado com sucesso");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/inscritos/{jogadorId}/pontuacao")
+    public ResponseEntity<String> updatePontuacao(
+            @PathVariable Long id,
+            @PathVariable Long jogadorId,
+            @RequestBody PontuacaoUpdateDTO dto,
+            Principal principal) {
+
+        try {
+            torneiosService.atualizarPontuacao(id, jogadorId, dto.pontuacao(), principal.getName());
+            return ResponseEntity.ok("Pontuação atualizada");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 }
