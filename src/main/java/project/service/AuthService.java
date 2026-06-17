@@ -53,10 +53,13 @@ public class AuthService {
         detalhes.setVerificado(false); // Garante o padrão não verificado no ato do cadastro
         detalhes.setUser(user); // Amarra a chave estrangeira ao usuário acima
 
+        // === LIGAR A MEDALHA DE MEMBRO BETA AQUI ===
+        detalhes.getConquistas().add("MEMBRO_BETA");
+
         // 4. Vincula os detalhes dentro do objeto do usuário
         user.setDetalhes(detalhes);
 
-        // 5. Salva o usuário no banco (O CascadeType.ALL na entidade User vai salvar a tb_users_detalhe junto!)
+        // 5. Salva o usuário no banco (O Cascade salva User, UserDetalhes e a lista de Conquistas!)
         userRepository.save(user);
 
         // 6. Gera o token e devolve o AuthResponse original para o controller

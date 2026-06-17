@@ -3,6 +3,9 @@ package project.modal.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @Entity
 @Table(name = "tb_users_detalhes")
@@ -29,4 +32,9 @@ public class UserDetalhes {
     private String nationality;
     private String language;
     private String username;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "tb_users_conquistas", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "conquista_codigo")
+    private List<String> conquistas = new ArrayList<>();
 }

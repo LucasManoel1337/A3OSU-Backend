@@ -84,13 +84,16 @@ public class UserService {
         String language = userDet.map(UserDetalhes::getLanguage).orElse("");
         Boolean verificado = userDet.map(UserDetalhes::getVerificado).orElse(false);
 
+        List<String> conquistas = userDet.map(UserDetalhes::getConquistas).orElse(List.of());
+
         return new UserProfileDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
                 nationality,
                 language,
-                verificado
+                verificado,
+                conquistas
         );
     }
 
