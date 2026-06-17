@@ -75,4 +75,18 @@
         </rollback>
     </changeSet>
 
+    <changeSet id="170620260452" author="lucasmp">
+        <addColumn tableName="tb_torneios">
+            <column name="data_inicio" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="hora_inicio" type="TIME">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

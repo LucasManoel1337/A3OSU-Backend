@@ -58,6 +58,9 @@ public class TorneiosService {
             torneio.setLogo(requestDTO.getLogo().getBytes());
         }
 
+        torneio.setDataInicio(requestDTO.getDataInicio());
+        torneio.setHoraInicio(requestDTO.getHoraInicio());
+
         Torneio torneioSalvo = torneioRepository.save(torneio);
         return mapearParaDTO(torneioSalvo);
     }
@@ -88,6 +91,8 @@ public class TorneiosService {
         dto.setDescricao(torneio.getDescricao());
         dto.setIsPrivado(torneio.getIsPrivado());
         dto.setCriadoEm(torneio.getCriadoEm());
+        dto.setDataInicio(torneio.getDataInicio());
+        dto.setHoraInicio(torneio.getHoraInicio());
 
         if (torneio.getBanner() != null) {
             String bannerBase64 = Base64.getEncoder().encodeToString(torneio.getBanner());
@@ -160,6 +165,9 @@ public class TorneiosService {
         if (userDetalhes.getAvatarData() != null) {
             dto.setOrganizadorAvatar(Base64.getEncoder().encodeToString(userDetalhes.getAvatarData()));
         }
+
+        dto.setDataInicio(torneio.getDataInicio());
+        dto.setHoraInicio(torneio.getHoraInicio());
 
         return dto;
     }

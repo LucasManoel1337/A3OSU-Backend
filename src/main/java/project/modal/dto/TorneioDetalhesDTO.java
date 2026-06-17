@@ -2,7 +2,9 @@ package project.modal.dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Data
 public class TorneioDetalhesDTO {
@@ -22,4 +24,7 @@ public class TorneioDetalhesDTO {
     private String organizadorVerificado;
     private String organizadorAvatarUrl;
     private LocalDateTime criadoEm;
+    private LocalDate dataInicio;
+    private LocalTime horaInicio;
+    private String status;
 }

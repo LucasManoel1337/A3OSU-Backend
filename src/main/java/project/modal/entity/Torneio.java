@@ -2,7 +2,10 @@ package project.modal.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Data
 @Entity
@@ -51,6 +54,12 @@ public class Torneio {
     private LocalDateTime atualizadoEm;
 
     private Long criadorId;
+
+    @Column(name = "data_inicio")
+    private LocalDate dataInicio;
+
+    @Column(name = "hora_inicio")
+    private LocalTime horaInicio;
 
     @PrePersist
     protected void onCreate() {

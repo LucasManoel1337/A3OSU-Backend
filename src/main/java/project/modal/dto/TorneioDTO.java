@@ -3,6 +3,9 @@ package project.modal.dto;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 @Data
 public class TorneioDTO {
     private Long id;
@@ -17,4 +20,6 @@ public class TorneioDTO {
     private MultipartFile logo;
     private Long criadorId;
     private String senha;
+    private LocalDate dataInicio;
+    private LocalTime horaInicio;
 }
