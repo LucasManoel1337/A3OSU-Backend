@@ -11,29 +11,25 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
+    private static final long ACCESS_TOKEN_VALIDITY_MILLIS = 1000L * 60 * 15;
+
     @Value("${api.security.token.secret}")
     private String secretKey;
 
-    // Gera o token apenas usando os dados essenciais do usuário
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
-    }
-
-    // Método principal de geração: constrói o JWT com claims, validade e a assinatura
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, String sessionId) {
+        Map<String, Object> claims = Map.of("sid", sessionId);
         return Jwts.builder()
-                .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername()) // O "dono" do token
-                .setIssuedAt(new Date(System.currentTimeMillis())) // Data de criação
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Expira em 24 horas
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256) // Assinatura com a chave secreta
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_MILLIS))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -42,7 +38,10 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // Verifica se o token pertence de fato a este usuário e se não está vencido
+    public String extractSessionId(String token) {
+        return extractClaim(token, claims -> claims.get("sid", String.class));
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);

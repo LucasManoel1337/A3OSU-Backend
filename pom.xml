@@ -111,6 +111,18 @@
 			<artifactId>spring-dotenv</artifactId>
 			<version>4.0.0</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.resend</groupId>
+			<artifactId>resend-java</artifactId>
+			<version>4.11.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.svix</groupId>
+			<artifactId>svix</artifactId>
+			<version>1.44.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -129,6 +141,8 @@
 							<version>1.18.38</version> <!-- Versão do Lombok -->
 						</path>
 					</annotationProcessorPaths>
+					<source>21</source>
+					<target>21</target>
 				</configuration>
 			</plugin>
 

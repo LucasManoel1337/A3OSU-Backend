@@ -15,7 +15,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import project.security.JwtAuthenticationFilter;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -59,7 +58,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigin.split(",")));
+        String frontendOrigin = allowedOrigin.trim();
+        if (frontendOrigin.isBlank() || frontendOrigin.contains(",") || "*".equals(frontendOrigin)) {
+            throw new IllegalStateException("api.cors.allowed-origin deve conter somente a origem do frontend.");
+        }
+        configuration.setAllowedOrigins(List.of(frontendOrigin));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -1,5 +1,6 @@
 package project.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,11 +10,12 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import project.repository.UserRepository;
 import project.service.JwtService;
+import project.service.RefreshSessionService;
 
 import java.io.IOException;
 
@@ -22,7 +24,13 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
+    private final RefreshSessionService refreshSessionService;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getServletPath().startsWith("/api/auth/");
+    }
 
     @Override
     protected void doFilterInternal(
@@ -61,9 +69,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 4. Verificação de Segurança
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                UserDetails userDetails = this.userRepository.findByUsername(username)
+                        .orElseThrow(() -> new IllegalArgumentException("Usuário do token não encontrado."));
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                    String sessionId = jwtService.extractSessionId(jwt);
+                    if (sessionId == null || !refreshSessionService.recordActivity(sessionId, username)) {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Sessão inválida ou expirada.");
+                        return;
+                    }
+
                     //System.out.println("DEBUG: Token válido! Logando usuário: " + username);
 
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -75,7 +90,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     System.out.println("DEBUG: Token inválido para o usuário " + username);
                 }
             }
-        } catch (Exception e) {
+        } catch (JwtException | IllegalArgumentException e) {
             System.out.println("DEBUG: Erro ao processar JWT: " + e.getMessage());
         }
 
