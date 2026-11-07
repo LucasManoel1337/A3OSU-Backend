@@ -19,7 +19,7 @@ public class ResendEmailService {
     @Value("${app.email.resend-api-key:}")
     private String resendApiKey;
 
-    @Value("${app.email.from:onboarding@resend.dev}")
+    @Value("${app.email.from:no-reply@osutournament.com.br}")
     private String fromAddress;
 
     public void enviarCodigo(String recipient, String code, VerificationPurpose purpose) {
