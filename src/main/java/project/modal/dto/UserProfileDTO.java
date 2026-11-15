@@ -11,5 +11,7 @@ public record UserProfileDTO(
         String language,
         Boolean verificado,
         List<String> conquistas,
+        List<String> titulosDisponiveis,
+        String tituloSelecionado,
         LocalDateTime criadoEm
 ) {}

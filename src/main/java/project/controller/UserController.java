@@ -1,7 +1,9 @@
 package project.controller;
 
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -98,5 +100,53 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PutMapping("/titulo")
+    public ResponseEntity<Void> selecionarTitulo(@RequestBody SelecionarTituloRequest request,
+                                                 Authentication authentication) {
+        userService.selecionarTitulo(authentication.getName(), request.titulo());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/moderacao")
+    public ResponseEntity<List<ModeracaoUsuarioDTO>> pesquisarParaModeracao(
+            @RequestParam(required = false, defaultValue = "") String termo,
+            Authentication authentication) {
+        return ResponseEntity.ok(userService.pesquisarUsuariosParaModeracao(authentication.getName(), termo));
+    }
+
+    @PutMapping("/moderacao/{userId}/verificado")
+    public ResponseEntity<Void> atualizarVerificado(@PathVariable Long userId,
+                                                    @RequestBody AtualizarVerificadoRequest request,
+                                                    Authentication authentication) {
+        userService.atualizarVerificado(authentication.getName(), userId, request.verificado());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/moderacao/{userId}/conquistas")
+    public ResponseEntity<Void> atualizarConquista(@PathVariable Long userId,
+                                                   @RequestBody AtualizarConquistaRequest request,
+                                                   Authentication authentication) {
+        userService.atualizarConquista(authentication.getName(), userId, request.codigo(), request.conceder());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/moderacao/{userId}/titulos")
+    public ResponseEntity<Void> atualizarTitulo(@PathVariable Long userId,
+                                                @RequestBody AtualizarTituloRequest request,
+                                                Authentication authentication) {
+        userService.atualizarTitulo(authentication.getName(), userId, request.titulo(), request.conceder());
+        return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Void> acessoNegado() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> requisicaoInvalida(IllegalArgumentException exception) {
+        return ResponseEntity.badRequest().body(exception.getMessage());
     }
 }

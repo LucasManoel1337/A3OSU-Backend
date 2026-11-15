@@ -76,6 +76,7 @@ public class AuthService {
         detalhes.setLanguage(request.language());
         detalhes.setUsername(request.username());
         detalhes.setVerificado(false);
+        detalhes.setEmailVerificado(false);
         detalhes.setUser(user);
         detalhes.setCriadoEm(LocalDateTime.now());
 
@@ -101,7 +102,7 @@ public class AuthService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciais inválidas."));
-        if (user.getDetalhes() == null || !Boolean.TRUE.equals(user.getDetalhes().getVerificado())) {
+        if (user.getDetalhes() == null || !Boolean.TRUE.equals(user.getDetalhes().getEmailVerificado())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Confirme seu email antes de entrar.");
         }
 
@@ -129,7 +130,7 @@ public class AuthService {
         User user = findUserByEmail(request.email());
         AuthVerificationCode code = validarCodigo(user, request.code(), VerificationPurpose.EMAIL_VERIFICATION);
 
-        user.getDetalhes().setVerificado(true);
+        user.getDetalhes().setEmailVerificado(true);
         verificationCodeRepository.delete(code);
         return new MessageResponse("Email confirmado com sucesso.");
     }
@@ -138,7 +139,7 @@ public class AuthService {
     public MessageResponse reenviarVerificacao(ResendVerificationRequest request) {
         userRepository.findByEmail(normalizeEmail(request.email()))
                 .filter(user -> user.getDetalhes() == null
-                        || !Boolean.TRUE.equals(user.getDetalhes().getVerificado()))
+                        || !Boolean.TRUE.equals(user.getDetalhes().getEmailVerificado()))
                 .ifPresent(user -> enviarCodigo(user, VerificationPurpose.EMAIL_VERIFICATION));
 
         return new MessageResponse("Se a conta existir e ainda não estiver confirmada, enviaremos um novo código.");

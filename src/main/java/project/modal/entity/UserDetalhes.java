@@ -30,6 +30,12 @@ public class UserDetalhes {
     @Column(name = "verificado")
     private Boolean verificado;
 
+    @Column(name = "email_verificado", nullable = false)
+    private Boolean emailVerificado = false;
+
+    @Column(name = "titulo_selecionado", length = 60)
+    private String tituloSelecionado;
+
     private String nationality;
     private String language;
     private String username;
@@ -38,6 +44,11 @@ public class UserDetalhes {
     @CollectionTable(name = "tb_users_conquistas", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "conquista_codigo")
     private List<String> conquistas = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "tb_users_titulos", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "titulo", length = 60)
+    private List<String> titulos = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime CriadoEm;

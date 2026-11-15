@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="141120261900" author="a3osu">
+        <addColumn tableName="tb_users_detalhes">
+            <column name="email_verificado" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="titulo_selecionado" type="VARCHAR(60)"/>
+        </addColumn>
+
+        <sql>
+            UPDATE tb_users_detalhes
+            SET email_verificado = verificado
+            WHERE verificado IS NOT NULL
+        </sql>
+
+        <createTable tableName="tb_users_titulos">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="titulo" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="tb_users_titulos"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_user_titulos"
+                                 referencedTableName="tb_users_detalhes"
+                                 referencedColumnNames="id"/>
+        <addUniqueConstraint tableName="tb_users_titulos"
+                             columnNames="user_id,titulo"
+                             constraintName="uk_user_titulo"/>
+
+        <rollback>
+            <dropTable tableName="tb_users_titulos"/>
+            <dropColumn tableName="tb_users_detalhes" columnName="titulo_selecionado"/>
+            <dropColumn tableName="tb_users_detalhes" columnName="email_verificado"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

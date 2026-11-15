@@ -12,4 +12,5 @@ public class PerfilPublicoDTO {
     private Boolean verificado;
     private LocalDateTime criadoEm;
     private List<String> conquistas;
+    private String tituloSelecionado;
 }

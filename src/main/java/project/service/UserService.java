@@ -1,6 +1,7 @@
 package project.service;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,8 +15,10 @@ import project.repository.UserRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.time.LocalDateTime.*;
@@ -24,6 +27,11 @@ import static java.time.LocalDateTime.*;
 public class UserService {
 
     private static final long MAX_SIZE = 5 * 1024 * 1024;
+    private static final Set<String> CONQUISTAS_CONCEDIVEIS =
+            Set.of("FOUNDER", "MEMBRO_BETA", "PRIMEIRA_BATALHA", "ORGANIZADOR");
+    private static final String TITULO_COMPETIDOR_CASUAL = "Competidor casual";
+    private static final String TITULO_ORGANIZADOR = "Organizador de Torneios";
+    private static final String TITULO_FUNDADOR = "Fundador da plataforma";
 
     private final UserDetalhesRepository userDetalhesrepository;
     private final UserRepository userRepository;
@@ -89,6 +97,10 @@ public class UserService {
         LocalDateTime dataCriacao = userDet.map(UserDetalhes::getCriadoEm).orElse(null);
 
         List<String> conquistas = userDet.map(UserDetalhes::getConquistas).orElse(List.of());
+        List<String> titulosDisponiveis = userDet.map(this::titulosDisponiveis).orElse(List.of());
+        String tituloSelecionado = userDet.map(UserDetalhes::getTituloSelecionado)
+                .filter(titulosDisponiveis::contains)
+                .orElse(null);
 
         return new UserProfileDTO(
                 user.getId(),
@@ -98,6 +110,8 @@ public class UserService {
                 language,
                 verificado,
                 conquistas,
+                titulosDisponiveis,
+                tituloSelecionado,
                 dataCriacao
         );
     }
@@ -152,6 +166,7 @@ public class UserService {
         return dto;
     }
 
+    @Transactional(readOnly = true)
     public PerfilPublicoDTO buscarPerfilPublico(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -165,6 +180,11 @@ public class UserService {
             dto.setNationality(user.getDetalhes().getNationality() != null ? user.getDetalhes().getNationality() : "un");
             dto.setVerificado(user.getDetalhes().getVerificado() != null ? user.getDetalhes().getVerificado() : false);
             dto.setConquistas(user.getDetalhes().getConquistas() != null ? user.getDetalhes().getConquistas() : List.of());
+            List<String> titulos = titulosDisponiveis(user.getDetalhes());
+            String tituloSelecionado = user.getDetalhes().getTituloSelecionado();
+            if (tituloSelecionado != null && titulos.contains(tituloSelecionado)) {
+                dto.setTituloSelecionado(tituloSelecionado);
+            }
         } else {
             dto.setNationality("un");
             dto.setVerificado(false);
@@ -172,5 +192,135 @@ public class UserService {
         }
 
         return dto;
+    }
+
+    @Transactional
+    public void selecionarTitulo(String username, String titulo) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        UserDetalhes detalhes = obterOuCriarDetalhes(user);
+        String tituloNormalizado = titulo == null || titulo.isBlank() ? null : titulo.trim();
+
+        if (tituloNormalizado != null && !titulosDisponiveis(detalhes).contains(tituloNormalizado)) {
+            throw new IllegalArgumentException("Esse título ainda não foi desbloqueado.");
+        }
+
+        detalhes.setTituloSelecionado(tituloNormalizado);
+        userDetalhesrepository.save(detalhes);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ModeracaoUsuarioDTO> pesquisarUsuariosParaModeracao(String usernameFundador, String termo) {
+        exigirFundador(usernameFundador);
+        String busca = termo == null ? "" : termo.trim();
+        if (busca.length() < 2) {
+            return List.of();
+        }
+
+        return userRepository.findTop25ByUsernameContainingIgnoreCaseOrderByUsernameAsc(busca).stream()
+                .map(user -> {
+                    UserDetalhes detalhes = user.getDetalhes();
+                    return new ModeracaoUsuarioDTO(
+                            user.getId(),
+                            user.getUsername(),
+                            detalhes == null || detalhes.getAvatarData() == null
+                                    ? null
+                                    : "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(detalhes.getAvatarData()),
+                            detalhes == null || detalhes.getNationality() == null ? "un" : detalhes.getNationality(),
+                            detalhes != null && Boolean.TRUE.equals(detalhes.getVerificado()),
+                            detalhes == null ? List.of() : List.copyOf(detalhes.getConquistas()),
+                            detalhes == null ? List.of() : List.copyOf(detalhes.getTitulos())
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional
+    public void atualizarVerificado(String usernameFundador, Long userId, Boolean verificado) {
+        exigirFundador(usernameFundador);
+        if (verificado == null) {
+            throw new IllegalArgumentException("Informe o novo status de verificação.");
+        }
+        User user = usuarioAlvo(userId);
+        UserDetalhes detalhes = obterOuCriarDetalhes(user);
+        detalhes.setVerificado(verificado);
+        userDetalhesrepository.save(detalhes);
+    }
+
+    @Transactional
+    public void atualizarConquista(String usernameFundador, Long userId, String codigo, Boolean conceder) {
+        exigirFundador(usernameFundador);
+        if (codigo == null || !CONQUISTAS_CONCEDIVEIS.contains(codigo) || conceder == null) {
+            throw new IllegalArgumentException("Conquista ou ação inválida.");
+        }
+        UserDetalhes detalhes = obterOuCriarDetalhes(usuarioAlvo(userId));
+        if (conceder && !detalhes.getConquistas().contains(codigo)) {
+            detalhes.getConquistas().add(codigo);
+        } else if (!conceder) {
+            detalhes.getConquistas().removeIf(codigo::equals);
+        }
+        userDetalhesrepository.save(detalhes);
+    }
+
+    @Transactional
+    public void atualizarTitulo(String usernameFundador, Long userId, String titulo, Boolean conceder) {
+        exigirFundador(usernameFundador);
+        String tituloNormalizado = titulo == null ? "" : titulo.trim();
+        if (tituloNormalizado.isEmpty() || tituloNormalizado.length() > 60
+                || tituloNormalizado.chars().anyMatch(Character::isISOControl) || conceder == null) {
+            throw new IllegalArgumentException("O título deve ter entre 1 e 60 caracteres.");
+        }
+
+        UserDetalhes detalhes = obterOuCriarDetalhes(usuarioAlvo(userId));
+        if (conceder && !detalhes.getTitulos().contains(tituloNormalizado)) {
+            detalhes.getTitulos().add(tituloNormalizado);
+        } else if (!conceder) {
+            detalhes.getTitulos().removeIf(tituloNormalizado::equals);
+            if (tituloNormalizado.equals(detalhes.getTituloSelecionado())) {
+                detalhes.setTituloSelecionado(null);
+            }
+        }
+        userDetalhesrepository.save(detalhes);
+    }
+
+    private void exigirFundador(String username) {
+        User fundador = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AccessDeniedException("Acesso restrito a fundadores."));
+        UserDetalhes detalhes = fundador.getDetalhes();
+        if (detalhes == null || !detalhes.getConquistas().contains("FOUNDER")) {
+            throw new AccessDeniedException("Acesso restrito a fundadores.");
+        }
+    }
+
+    private User usuarioAlvo(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+    }
+
+    private UserDetalhes obterOuCriarDetalhes(User user) {
+        return userDetalhesrepository.findByUserId(user.getId()).orElseGet(() -> {
+            UserDetalhes detalhes = new UserDetalhes();
+            detalhes.setUser(user);
+            detalhes.setUsername(user.getUsername());
+            detalhes.setVerificado(false);
+            detalhes.setEmailVerificado(false);
+            detalhes.setCriadoEm(LocalDateTime.now());
+            return detalhes;
+        });
+    }
+
+    private List<String> titulosDisponiveis(UserDetalhes detalhes) {
+        LinkedHashSet<String> titulos = new LinkedHashSet<>(detalhes.getTitulos());
+        List<String> conquistas = detalhes.getConquistas();
+        if (conquistas.contains("PRIMEIRA_BATALHA")) {
+            titulos.add(TITULO_COMPETIDOR_CASUAL);
+        }
+        if (conquistas.contains("ORGANIZADOR")) {
+            titulos.add(TITULO_ORGANIZADOR);
+        }
+        if (conquistas.contains("FOUNDER")) {
+            titulos.add(TITULO_FUNDADOR);
+        }
+        return List.copyOf(titulos);
     }
 }
