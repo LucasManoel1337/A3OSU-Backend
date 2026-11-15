@@ -3,8 +3,10 @@ package project.service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import project.modal.dto.*;
 import project.modal.entity.Torneio;
 import project.modal.entity.TorneioInscricao;
@@ -39,7 +41,9 @@ public class TorneiosService {
 
 
 
-    public TorneioDTO criarTorneio(TorneioDTO requestDTO) throws IOException {
+    @Transactional
+    public TorneioDTO criarTorneio(TorneioDTO requestDTO, String usernameAutenticado) throws IOException {
+        Long criadorId = obterUserIdAutenticado(usernameAutenticado);
 
         Torneio torneio = new Torneio();
         torneio.setNome(requestDTO.getNome());
@@ -49,7 +53,7 @@ public class TorneiosService {
         torneio.setVagasRestantes(requestDTO.getVagas());
         torneio.setDescricao(requestDTO.getDescricao());
         torneio.setIsPrivado(requestDTO.getIsPrivado());
-        torneio.setCriadorId(requestDTO.getCriadorId());
+        torneio.setCriadorId(criadorId);
 
         if (Boolean.TRUE.equals(requestDTO.getIsPrivado()) && requestDTO.getSenha() != null && !requestDTO.getSenha().isEmpty()) {
             torneio.setSenha(passwordEncoder.encode(requestDTO.getSenha()));
@@ -78,7 +82,7 @@ public class TorneiosService {
 
         Torneio torneioSalvo = torneioRepository.save(torneio);
 
-        UserDetalhes detalhes = userDetalhesRepository.findByUserId(requestDTO.getCriadorId())
+        UserDetalhes detalhes = userDetalhesRepository.findByUserId(criadorId)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
 
         if (!detalhes.getConquistas().contains("ORGANIZADOR")) {
@@ -200,9 +204,10 @@ public class TorneiosService {
     }
 
     @Transactional
-    public void entrarNoTorneio(Long torneioId, EntrarTorneioDTO request) {
+    public void entrarNoTorneio(Long torneioId, EntrarTorneioDTO request, String usernameAutenticado) {
+        Long jogadorId = obterUserIdAutenticado(usernameAutenticado);
 
-        Torneio torneio = torneioRepository.findById(torneioId)
+        Torneio torneio = torneioRepository.findByIdForUpdate(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
 
         if ("Em Rascunho".equalsIgnoreCase(torneio.getStatus())) {
@@ -213,7 +218,7 @@ public class TorneiosService {
             throw new RuntimeException("O torneio já está lotado.");
         }
 
-        if (inscricaoRepository.existsByTorneioIdAndJogadorId(torneioId, request.getJogadorId())) {
+        if (inscricaoRepository.existsByTorneioIdAndJogadorId(torneioId, jogadorId)) {
             throw new RuntimeException("Você já está participando deste torneio.");
         }
 
@@ -225,13 +230,13 @@ public class TorneiosService {
 
         TorneioInscricao inscricao = new TorneioInscricao();
         inscricao.setTorneioId(torneio.getId());
-        inscricao.setJogadorId(request.getJogadorId());
+        inscricao.setJogadorId(jogadorId);
         inscricaoRepository.save(inscricao);
 
         torneio.setVagasRestantes(torneio.getVagasRestantes() - 1);
         torneioRepository.save(torneio);
 
-        UserDetalhes detalhes = userDetalhesRepository.findByUserId(request.getJogadorId())
+        UserDetalhes detalhes = userDetalhesRepository.findByUserId(jogadorId)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
 
         if (!detalhes.getConquistas().contains("PRIMEIRA_BATALHA")) {
@@ -264,29 +269,38 @@ public class TorneiosService {
         }).toList();
     }
 
-    public List<TorneioListaDTO> listarParticipativos(Long jogadorId) {
+    public List<TorneioListaDTO> listarParticipativos(Long jogadorId, String usernameAutenticado) {
+        exigirAcessoAoProprioUsuario(jogadorId, usernameAutenticado);
         return torneioRepository.findTorneiosByJogadorId(jogadorId).stream()
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<TorneioListaDTO> listarCriados(Long criadorId) {
+    public List<TorneioListaDTO> listarCriados(Long criadorId, String usernameAutenticado) {
+        exigirAcessoAoProprioUsuario(criadorId, usernameAutenticado);
         return torneioRepository.findByCriadorId(criadorId).stream()
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<TorneioListaDTO> listarModerando(Long moderadorId) {
+    public List<TorneioListaDTO> listarModerando(Long moderadorId, String usernameAutenticado) {
+        exigirAcessoAoProprioUsuario(moderadorId, usernameAutenticado);
         return torneioRepository.buscarTorneiosPorModeradorId(moderadorId).stream()
                 .map(this::mapearParaListaDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public void adicionarModerador(Long torneioId, Long moderadorId) {
+    public void adicionarModerador(Long torneioId, Long moderadorId, String usernameAutenticado) {
         Torneio torneio = torneioRepository.findById(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+        exigirCriador(torneio, usernameAutenticado);
+        userDetalhesRepository.findByUserId(moderadorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Moderador não encontrado."));
 
+        if (torneio.getModeradoresIds() == null) {
+            torneio.setModeradoresIds(new java.util.ArrayList<>());
+        }
         if (!torneio.getModeradoresIds().contains(moderadorId)) {
             torneio.getModeradoresIds().add(moderadorId);
             torneioRepository.save(torneio);
@@ -294,9 +308,10 @@ public class TorneiosService {
     }
 
     @Transactional
-    public void removerModerador(Long torneioId, Long moderadorId) {
+    public void removerModerador(Long torneioId, Long moderadorId, String usernameAutenticado) {
         Torneio torneio = torneioRepository.findById(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+        exigirCriador(torneio, usernameAutenticado);
 
         torneio.getModeradoresIds().remove(moderadorId);
         torneioRepository.save(torneio);
@@ -328,29 +343,64 @@ public class TorneiosService {
         }).filter(java.util.Objects::nonNull).toList();
     }
 
+    @Transactional
     public void atualizarStatus(Long torneioId, String novoStatus, String usuarioLogadoId) {
         Torneio torneio = torneioRepository.findById(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado"));
 
-        UserDetalhes user = userDetalhesRepository.findByUsername(usuarioLogadoId);
-
-        // Segurança: Validação 403 (Só o criador pode mudar o status)
-        if (!torneio.getCriadorId().equals(user.getId())) {
-            throw new RuntimeException("Você não tem permissão para alterar este torneio.");
+        exigirCriador(torneio, usuarioLogadoId);
+        if (novoStatus == null
+                || !List.of("Em Rascunho", "Aguardando Início", "Em Andamento", "Encerrado").contains(novoStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status de torneio inválido.");
         }
 
         torneio.setStatus(novoStatus);
         torneioRepository.save(torneio);
     }
 
+    @Transactional
     public void atualizarPontuacao(Long torneioId, Long jogadorId, Integer pontuacao, String usuarioLogadoId) {
+        if (pontuacao == null || pontuacao < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A pontuação não pode ser negativa.");
+        }
         Torneio torneio = torneioRepository.findById(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado"));
+        exigirGerenciador(torneio, usuarioLogadoId);
 
         TorneioInscricao inscrito = inscricaoRepository.findByTorneioIdAndJogadorId(torneioId, jogadorId)
                 .orElseThrow(() -> new RuntimeException("Jogador não encontrado neste torneio"));
 
         inscrito.setPontuacao(pontuacao);
         inscricaoRepository.save(inscrito);
+    }
+
+    private Long obterUserIdAutenticado(String username) {
+        UserDetalhes detalhes = userDetalhesRepository.findByUsername(username);
+        if (detalhes == null || detalhes.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Não foi possível identificar o usuário autenticado.");
+        }
+        return detalhes.getUser().getId();
+    }
+
+    private void exigirAcessoAoProprioUsuario(Long userId, String usernameAutenticado) {
+        if (!obterUserIdAutenticado(usernameAutenticado).equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso permitido somente aos seus próprios torneios.");
+        }
+    }
+
+    private void exigirCriador(Torneio torneio, String usernameAutenticado) {
+        if (!java.util.Objects.equals(torneio.getCriadorId(), obterUserIdAutenticado(usernameAutenticado))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Somente o organizador pode realizar esta ação.");
+        }
+    }
+
+    private void exigirGerenciador(Torneio torneio, String usernameAutenticado) {
+        Long userId = obterUserIdAutenticado(usernameAutenticado);
+        boolean criador = java.util.Objects.equals(userId, torneio.getCriadorId());
+        boolean moderador = torneio.getModeradoresIds() != null
+                && torneio.getModeradoresIds().contains(userId);
+        if (!criador && !moderador) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Somente o organizador ou um moderador pode alterar pontuações.");
+        }
     }
 }

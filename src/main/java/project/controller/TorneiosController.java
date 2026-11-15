@@ -1,5 +1,4 @@
 package project.controller;
-import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,9 +19,9 @@ public class TorneiosController {
     private final TorneiosService torneiosService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<TorneioDTO> criar(@ModelAttribute TorneioDTO requestDTO) throws IOException {
+    public ResponseEntity<TorneioDTO> criar(@ModelAttribute TorneioDTO requestDTO, Principal principal) throws IOException {
 
-        TorneioDTO response = torneiosService.criarTorneio(requestDTO);
+        TorneioDTO response = torneiosService.criarTorneio(requestDTO, principal.getName());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -39,10 +38,13 @@ public class TorneiosController {
     }
 
     @PostMapping("/{id}/entrar")
-    public ResponseEntity<String> entrarNoTorneio(@PathVariable Long id, @RequestBody EntrarTorneioDTO requestDTO) {
+    public ResponseEntity<String> entrarNoTorneio(@PathVariable Long id, @RequestBody EntrarTorneioDTO requestDTO,
+                                                  Principal principal) {
         try {
-            torneiosService.entrarNoTorneio(id, requestDTO);
+            torneiosService.entrarNoTorneio(id, requestDTO, principal.getName());
             return ResponseEntity.ok("Inscrição realizada com sucesso!");
+        } catch (org.springframework.web.server.ResponseStatusException exception) {
+            throw exception;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -55,19 +57,19 @@ public class TorneiosController {
     }
 
     @GetMapping("/participando/{idUsuario}")
-    public ResponseEntity<List<TorneioListaDTO>> listarParticipativos(@PathVariable Long idUsuario) {
-        return ResponseEntity.ok(torneiosService.listarParticipativos(idUsuario));
+    public ResponseEntity<List<TorneioListaDTO>> listarParticipativos(@PathVariable Long idUsuario, Principal principal) {
+        return ResponseEntity.ok(torneiosService.listarParticipativos(idUsuario, principal.getName()));
     }
 
     @GetMapping("/criados/{idUsuario}")
-    public ResponseEntity<List<TorneioListaDTO>> listarCriados(@PathVariable Long idUsuario) {
-        List<TorneioListaDTO> torneios = torneiosService.listarCriados(idUsuario);
+    public ResponseEntity<List<TorneioListaDTO>> listarCriados(@PathVariable Long idUsuario, Principal principal) {
+        List<TorneioListaDTO> torneios = torneiosService.listarCriados(idUsuario, principal.getName());
         return ResponseEntity.ok(torneios);
     }
 
     @GetMapping("/moderando/{idUsuario}")
-    public ResponseEntity<List<TorneioListaDTO>> listarModerando(@PathVariable Long idUsuario) {
-        List<TorneioListaDTO> torneios = torneiosService.listarModerando(idUsuario);
+    public ResponseEntity<List<TorneioListaDTO>> listarModerando(@PathVariable Long idUsuario, Principal principal) {
+        List<TorneioListaDTO> torneios = torneiosService.listarModerando(idUsuario, principal.getName());
         return ResponseEntity.ok(torneios);
     }
 
@@ -77,14 +79,14 @@ public class TorneiosController {
     }
 
     @PostMapping("/{id}/moderadores/{idModerador}")
-    public ResponseEntity<String> adicionarModerador(@PathVariable Long id, @PathVariable Long idModerador) {
-        torneiosService.adicionarModerador(id, idModerador);
+    public ResponseEntity<String> adicionarModerador(@PathVariable Long id, @PathVariable Long idModerador, Principal principal) {
+        torneiosService.adicionarModerador(id, idModerador, principal.getName());
         return ResponseEntity.ok("Moderador adicionado com sucesso!");
     }
 
     @DeleteMapping("/{id}/moderadores/{idModerador}")
-    public ResponseEntity<String> removerModerador(@PathVariable Long id, @PathVariable Long idModerador) {
-        torneiosService.removerModerador(id, idModerador);
+    public ResponseEntity<String> removerModerador(@PathVariable Long id, @PathVariable Long idModerador, Principal principal) {
+        torneiosService.removerModerador(id, idModerador, principal.getName());
         return ResponseEntity.ok("Moderador removido com sucesso!");
     }
 
