@@ -209,6 +209,7 @@ public class TorneiosService {
 
         Torneio torneio = torneioRepository.findByIdForUpdate(torneioId)
                 .orElseThrow(() -> new RuntimeException("Torneio não encontrado."));
+        userService.validarParticipacaoTorneio(jogadorId, torneio.getTipo());
 
         if ("Em Rascunho".equalsIgnoreCase(torneio.getStatus())) {
             throw new RuntimeException("Este torneio ainda não está aberto para inscrições.");

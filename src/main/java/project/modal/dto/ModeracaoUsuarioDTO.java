@@ -9,5 +9,6 @@ public record ModeracaoUsuarioDTO(
         String nacionalidade,
         Boolean verificado,
         List<String> conquistas,
-        List<String> titulos
+        List<String> titulos,
+        List<UserPunishmentDTO> punicoes
 ) {}

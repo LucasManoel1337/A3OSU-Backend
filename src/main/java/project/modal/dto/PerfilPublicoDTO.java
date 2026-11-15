@@ -13,4 +13,5 @@ public class PerfilPublicoDTO {
     private LocalDateTime criadoEm;
     private List<String> conquistas;
     private String tituloSelecionado;
+    private List<UserPunishmentDTO> punicoes;
 }

@@ -140,6 +140,20 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/moderacao/{userId}/punicoes")
+    public ResponseEntity<UserPunishmentDTO> aplicarPunicao(@PathVariable Long userId,
+                                                            @RequestBody UserPunishmentRequest request,
+                                                            Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userService.aplicarPunicao(authentication.getName(), userId, request));
+    }
+
+    @DeleteMapping("/moderacao/punicoes/{punishmentId}")
+    public ResponseEntity<UserPunishmentDTO> revogarPunicao(@PathVariable Long punishmentId,
+                                                            Authentication authentication) {
+        return ResponseEntity.ok(userService.revogarPunicao(authentication.getName(), punishmentId));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Void> acessoNegado() {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();

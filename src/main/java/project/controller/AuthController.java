@@ -17,6 +17,8 @@ import project.service.AuthService;
 import project.service.AuthSessionResult;
 import project.modal.response.AuthResponse;
 import project.modal.response.MessageResponse;
+import project.modal.dto.UserPunishmentDTO;
+import project.service.ActiveBanException;
 
 import java.time.Duration;
 
@@ -48,6 +50,12 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(result.refreshToken()).toString())
                 .body(result.response());
+    }
+
+    @ExceptionHandler(ActiveBanException.class)
+    public ResponseEntity<ActiveBanResponse> activeBan(ActiveBanException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ActiveBanResponse("ACTIVE_BAN", exception.getPunishment()));
     }
 
     @PostMapping("/refresh")
@@ -123,4 +131,6 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Origem não permitida.");
         }
     }
+
+    public record ActiveBanResponse(String error, UserPunishmentDTO punishment) {}
 }

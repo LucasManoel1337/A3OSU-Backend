@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import project.repository.UserRepository;
 import project.service.JwtService;
 import project.service.RefreshSessionService;
+import project.service.UserPunishmentService;
 
 import java.io.IOException;
 
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final RefreshSessionService refreshSessionService;
+    private final UserPunishmentService punishmentService;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -73,6 +75,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .orElseThrow(() -> new IllegalArgumentException("Usuário do token não encontrado."));
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                    if (userDetails instanceof project.modal.entity.User user
+                            && punishmentService.findActiveBan(user.getId()).isPresent()) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Conta suspensa.");
+                        return;
+                    }
                     String sessionId = jwtService.extractSessionId(jwt);
                     if (sessionId == null || !refreshSessionService.recordActivity(sessionId, username)) {
                         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Sessão inválida ou expirada.");

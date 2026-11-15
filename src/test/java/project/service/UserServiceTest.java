@@ -31,6 +31,9 @@ class UserServiceTest {
     @Mock
     private UserDetalhesRepository userDetalhesRepository;
 
+    @Mock
+    private UserPunishmentService punishmentService;
+
     @InjectMocks
     private UserService userService;
 
@@ -62,6 +65,17 @@ class UserServiceTest {
         assertThat(targetDetails.getVerificado()).isTrue();
         assertThat(targetDetails.getEmailVerificado()).isTrue();
         verify(userDetalhesRepository).save(targetDetails);
+    }
+
+    @Test
+    void deniesPunishmentActionsWithoutFounderAchievement() {
+        User player = userWithAchievement("player", "MEMBRO_BETA");
+        when(userRepository.findByUsername("player")).thenReturn(Optional.of(player));
+
+        assertThatThrownBy(() -> userService.aplicarPunicao("player", 2L,
+                new project.modal.dto.UserPunishmentRequest(
+                        UserPunishmentService.PERMANENT_BAN, "Motivo", null)))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     private User userWithAchievement(String username, String achievement) {

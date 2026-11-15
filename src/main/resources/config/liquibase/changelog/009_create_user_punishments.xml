@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="141120262300" author="a3osu">
+        <createTable tableName="tb_user_punishments">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_punishments"/>
+            </column>
+            <column name="target_user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="applied_by_user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_by_user_id" type="BIGINT"/>
+            <column name="type" type="VARCHAR(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reason" type="VARCHAR(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="applied_at" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="DATETIME"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="DATETIME"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="tb_user_punishments"
+                                 baseColumnNames="target_user_id"
+                                 constraintName="fk_punishment_target_user"
+                                 referencedTableName="tb_users"
+                                 referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="tb_user_punishments"
+                                 baseColumnNames="applied_by_user_id"
+                                 constraintName="fk_punishment_applied_by"
+                                 referencedTableName="tb_users"
+                                 referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="tb_user_punishments"
+                                 baseColumnNames="ended_by_user_id"
+                                 constraintName="fk_punishment_ended_by"
+                                 referencedTableName="tb_users"
+                                 referencedColumnNames="id"/>
+        <createIndex tableName="tb_user_punishments" indexName="idx_punishment_target_active">
+            <column name="target_user_id"/>
+            <column name="active"/>
+        </createIndex>
+        <rollback>
+            <dropTable tableName="tb_user_punishments"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -13,5 +13,6 @@ public record UserProfileDTO(
         List<String> conquistas,
         List<String> titulosDisponiveis,
         String tituloSelecionado,
-        LocalDateTime criadoEm
+        LocalDateTime criadoEm,
+        List<UserPunishmentDTO> punicoes
 ) {}

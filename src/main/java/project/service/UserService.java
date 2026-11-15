@@ -8,6 +8,8 @@ import org.springframework.web.multipart.MultipartFile;
 import project.modal.dto.*;
 import project.modal.entity.User;
 import project.modal.entity.UserDetalhes;
+import project.modal.dto.UserPunishmentDTO;
+import project.modal.dto.UserPunishmentRequest;
 import project.projection.UsuarioBuscaProjection;
 import project.repository.UserDetalhesRepository;
 import project.repository.UserRepository;
@@ -36,11 +38,14 @@ public class UserService {
     private final UserDetalhesRepository userDetalhesrepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserPunishmentService punishmentService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserDetalhesRepository userDetalhesrepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       UserDetalhesRepository userDetalhesrepository, UserPunishmentService punishmentService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userDetalhesrepository = userDetalhesrepository;
+        this.punishmentService = punishmentService;
     }
 
     @Transactional
@@ -112,7 +117,8 @@ public class UserService {
                 conquistas,
                 titulosDisponiveis,
                 tituloSelecionado,
-                dataCriacao
+                dataCriacao,
+                punishmentService.listForUser(user.getId())
         );
     }
 
@@ -175,6 +181,7 @@ public class UserService {
         dto.setIdUser(user.getId());
         dto.setUsername(user.getUsername());
         dto.setCriadoEm(user.getCreatedAt());
+        dto.setPunicoes(punishmentService.listForUser(user.getId()));
 
         if (user.getDetalhes() != null) {
             dto.setNationality(user.getDetalhes().getNationality() != null ? user.getDetalhes().getNationality() : "un");
@@ -229,7 +236,8 @@ public class UserService {
                             detalhes == null || detalhes.getNationality() == null ? "un" : detalhes.getNationality(),
                             detalhes != null && Boolean.TRUE.equals(detalhes.getVerificado()),
                             detalhes == null ? List.of() : List.copyOf(detalhes.getConquistas()),
-                            detalhes == null ? List.of() : List.copyOf(detalhes.getTitulos())
+                            detalhes == null ? List.of() : List.copyOf(detalhes.getTitulos()),
+                            punishmentService.listForUser(user.getId())
                     );
                 })
                 .toList();
@@ -281,6 +289,22 @@ public class UserService {
             }
         }
         userDetalhesrepository.save(detalhes);
+    }
+
+    @Transactional
+    public UserPunishmentDTO aplicarPunicao(String usernameFundador, Long userId, UserPunishmentRequest request) {
+        exigirFundador(usernameFundador);
+        return punishmentService.apply(userId, usernameFundador, request);
+    }
+
+    @Transactional
+    public UserPunishmentDTO revogarPunicao(String usernameFundador, Long punishmentId) {
+        exigirFundador(usernameFundador);
+        return punishmentService.revoke(punishmentId, usernameFundador);
+    }
+
+    public void validarParticipacaoTorneio(Long userId, String tipoTorneio) {
+        punishmentService.validateTournamentEntry(userId, tipoTorneio);
     }
 
     private void exigirFundador(String username) {

@@ -41,6 +41,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshSessionService refreshSessionService;
     private final ResendEmailService emailService;
+    private final UserPunishmentService punishmentService;
 
     public AuthService(UserRepository userRepository,
                        AuthVerificationCodeRepository verificationCodeRepository,
@@ -48,7 +49,8 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        RefreshSessionService refreshSessionService,
-                       ResendEmailService emailService) {
+                       ResendEmailService emailService,
+                       UserPunishmentService punishmentService) {
         this.userRepository = userRepository;
         this.verificationCodeRepository = verificationCodeRepository;
         this.passwordEncoder = passwordEncoder;
@@ -56,6 +58,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.refreshSessionService = refreshSessionService;
         this.emailService = emailService;
+        this.punishmentService = punishmentService;
     }
 
     @Transactional
@@ -105,6 +108,9 @@ public class AuthService {
         if (user.getDetalhes() == null || !Boolean.TRUE.equals(user.getDetalhes().getEmailVerificado())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Confirme seu email antes de entrar.");
         }
+        punishmentService.findActiveBan(user.getId()).ifPresent(punishment -> {
+            throw new ActiveBanException(punishment);
+        });
 
         RefreshSessionService.SessionTokens session = refreshSessionService.create(user);
         String token = jwtService.generateToken(user, session.sessionId());
@@ -113,6 +119,9 @@ public class AuthService {
 
     public AuthSessionResult refresh(String refreshToken) {
         RefreshSessionService.SessionTokens session = refreshSessionService.rotate(refreshToken);
+        punishmentService.findActiveBan(session.user().getId()).ifPresent(punishment -> {
+            throw new ActiveBanException(punishment);
+        });
         String token = jwtService.generateToken(session.user(), session.sessionId());
         return new AuthSessionResult(
                 new AuthResponse(token, session.user().getUsername()),

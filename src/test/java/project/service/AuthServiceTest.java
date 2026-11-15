@@ -9,6 +9,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import project.modal.entity.AuthVerificationCode;
 import project.modal.entity.User;
+import project.modal.entity.UserDetalhes;
+import project.modal.dto.UserPunishmentDTO;
+import project.modal.request.LoginRequest;
 import project.modal.entity.VerificationPurpose;
 import project.modal.request.ForgotPasswordRequest;
 import project.repository.AuthVerificationCodeRepository;
@@ -23,6 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -47,6 +51,9 @@ class AuthServiceTest {
 
     @Mock
     private ResendEmailService emailService;
+
+    @Mock
+    private UserPunishmentService punishmentService;
 
     @InjectMocks
     private AuthService authService;
@@ -80,5 +87,28 @@ class AuthServiceTest {
                 2L, VerificationPurpose.PASSWORD_RESET);
         verify(emailService).enviarCodigo(eq("player@example.com"), anyString(),
                 eq(VerificationPurpose.PASSWORD_RESET));
+    }
+
+    @Test
+    void blocksLoginAndReturnsActiveBanDetails() {
+        User user = new User();
+        user.setId(7L);
+        user.setEmail("player@example.com");
+        user.setUsername("player");
+        UserDetalhes details = new UserDetalhes();
+        details.setEmailVerificado(true);
+        user.setDetalhes(details);
+        UserPunishmentDTO punishment = new UserPunishmentDTO(
+                3L, UserPunishmentService.TEMPORARY_BAN, "Motivo", LocalDateTime.now(),
+                LocalDateTime.now().plusDays(1), true, "founder", null, true, null);
+
+        when(userRepository.findByEmail("player@example.com")).thenReturn(Optional.of(user));
+        when(punishmentService.findActiveBan(7L)).thenReturn(Optional.of(punishment));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("PLAYER@example.com", "password")))
+                .isInstanceOf(ActiveBanException.class)
+                .satisfies(exception -> assertThat(((ActiveBanException) exception).getPunishment())
+                        .isEqualTo(punishment));
+        verify(refreshSessionService, never()).create(user);
     }
 }

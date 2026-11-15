@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.modal.dto.*;
 import project.service.TorneiosService;
+import project.service.ActiveTournamentSuspensionException;
+import project.modal.dto.UserPunishmentDTO;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -43,12 +45,23 @@ public class TorneiosController {
         try {
             torneiosService.entrarNoTorneio(id, requestDTO, principal.getName());
             return ResponseEntity.ok("Inscrição realizada com sucesso!");
+        } catch (ActiveTournamentSuspensionException exception) {
+            throw exception;
         } catch (org.springframework.web.server.ResponseStatusException exception) {
             throw exception;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @ExceptionHandler(ActiveTournamentSuspensionException.class)
+    public ResponseEntity<ActiveSuspensionResponse> activeTournamentSuspension(
+            ActiveTournamentSuspensionException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ActiveSuspensionResponse("ACTIVE_TOURNAMENT_SUSPENSION", exception.getPunishment()));
+    }
+
+    public record ActiveSuspensionResponse(String error, UserPunishmentDTO punishment) {}
 
     @GetMapping("/{id}/inscritos")
     public ResponseEntity<List<InscritoDTO>> listarInscritos(@PathVariable Long id) {
